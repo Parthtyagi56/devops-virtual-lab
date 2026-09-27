@@ -1,0 +1,19 @@
+---
+- name: Configure DevOps Virtual Lab
+  hosts: servers
+  gather_facts: yes
+
+  tasks:
+
+    - name: Display configuration status
+      debug:
+        msg: "Ansible configuration successful for Virtual Lab Experiment 5"
+
+    - name: Create Ansible verification file
+      copy:
+        content: |
+          DevOps Virtual Lab Experiment 5
+
+          Ansible execution successful.
+          Server configuration completed using Ansible.
+        dest: /tmp/ansible-test.txt
