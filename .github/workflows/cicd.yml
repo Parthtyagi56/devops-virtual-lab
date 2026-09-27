@@ -5,26 +5,75 @@ on:
     branches:
       - main
 
-jobs:
-  build-test:
+  workflow_dispatch:
 
-    runs-on: ubuntu-latest
+jobs:
+  build-and-deploy:
+    runs-on:
+      - self-hosted
+      - Windows
+      - X64
 
     steps:
 
-      - name: Checkout Code
+      - name: Checkout Source Code
         uses: actions/checkout@v4
 
-      - name: Build Docker Image
-        run: docker build -t devops-lab-app:latest ./app
 
-      - name: Run Docker Container
+      - name: Verify Environment
+        shell: powershell
         run: |
-          docker run -d -p 8080:80 --name devops-test devops-lab-app:latest
-          sleep 5
+          Write-Host "Checking Docker..."
+          docker --version
 
-      - name: Test Web Application
-        run: curl --fail http://localhost:8080
+          Write-Host "Checking Minikube..."
+          minikube status
 
-      - name: Show Docker Images
-        run: docker images
+          Write-Host "Checking Kubernetes..."
+          kubectl get nodes
+
+
+      - name: Build Docker Image in Minikube
+        shell: powershell
+        run: |
+          minikube image build -t devops-lab-app:latest ./app
+
+
+      - name: Verify Docker Image
+        shell: powershell
+        run: |
+          minikube image ls | Select-String "devops-lab-app"
+
+
+      - name: Deploy to Kubernetes
+        shell: powershell
+        run: |
+          kubectl apply -f k8s/deployment.yml
+          kubectl apply -f k8s/service.yml
+
+
+      - name: Restart Application Deployment
+        shell: powershell
+        run: |
+          kubectl rollout restart deployment/devops-app
+          kubectl rollout status deployment/devops-app --timeout=120s
+
+
+      - name: Verify Kubernetes Deployment
+        shell: powershell
+        run: |
+          Write-Host "DEPLOYMENT"
+          kubectl get deployments
+
+          Write-Host "PODS"
+          kubectl get pods
+
+          Write-Host "SERVICE"
+          kubectl get services
+
+
+      - name: Pipeline Complete
+        shell: powershell
+        run: |
+          Write-Host "DevOps Virtual Lab Experiment 5"
+          Write-Host "CI/CD deployment completed successfully."
